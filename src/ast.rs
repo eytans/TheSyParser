@@ -1,8 +1,10 @@
 use crate::ast::Terminal::{Id, Hole};
-use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-#[derive(Debug)]
+pub enum Definitions {
+    Defs(Vec<Statement>),
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression {
     Leaf(Terminal),
     Op(Terminal, Vec<Expression>),
@@ -12,32 +14,32 @@ impl Expression {
     fn terminals(&self) -> Vec<&Terminal> {
         match self {
             Expression::Leaf(t) => vec![t],
-            Expression::Op(t, exps) =>
-                vec![t].iter().chain(exps.iter())
-                    .flat_map(|x| x.terminals())
-                    .collect_vec()
+            Expression::Op(t, exps) => {
+                let mut res = exps.iter()
+                    .flat_map(|x| x.terminals()).collect::<Vec<&Terminal>>();
+                res.insert(0, t);
+                res
+            }
         }
     }
 
     fn holes(&self) -> Vec<&Terminal> {
         self.terminals().iter().filter_map(|x| { match x {
             Id(_, _) => None,
-            Hole(_, _) => Some(x)
+            Hole(_, _) => Some(*x)
         }
-        }).collect_vec()
+        }).collect::<Vec<&Terminal>>()
     }
 }
 
-#[wasm_bindgen]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum StatementOp {
     DirectionalRewrite,
     BidirectionalRewrite,
     DiffApply,
 }
 
-#[wasm_bindgen]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Rewrite {
     /// Precondition - Source - Destination - Conditions
     DRewrite(Option<Expression>, Expression, Expression, Vec<Expression>),
@@ -46,11 +48,10 @@ pub enum Rewrite {
     AddSearcher(Option<Expression>, Expression, Expression, Vec<Expression>),
 }
 
-pub type Parameter = Identifier;
+pub type Parameter = (Identifier, Annotation);
 pub type Constructor = (Identifier, Vec<Parameter>);
 
-#[wasm_bindgen]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     /// Name and rewrite definition
     RewriteDef(String, Rewrite),
@@ -64,11 +65,10 @@ pub enum Statement {
 
 pub type Identifier = String;
 
-#[wasm_bindgen]
 #[derive(Debug, Clone)]
 pub enum Terminal {
-    Id(Identifier, Option<Annotation>),
-    Hole(Identifier, Option<Annotation>)
+    Id(Identifier, Option<Box<Annotation>>),
+    Hole(Identifier, Option<Box<Annotation>>)
 }
 
 impl ToString for Terminal {
@@ -80,8 +80,7 @@ impl ToString for Terminal {
     }
 }
 
-#[wasm_bindgen]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Annotation {
     Type(Expression),
     Placeholder(usize),

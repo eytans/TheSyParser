@@ -7,13 +7,13 @@ use crate::ast::Statement::*;
 use crate::ast::Expression::*;
 use crate::ast::Terminal::*;
 use crate::ast::Annotation::*;
-//use crate::ast::Definitions::*;
+use crate::ast::Definitions;
 
 grammar;
 
-//pub Defs: Definitions = {
-//
-//}
+pub Defs: Definitions = {
+    <(<Stmt> r"[;\n]")*> => Definitions::Defs(<>)
+}
 
 pub StmtOp: StatementOp = {
     "=>" => DirectionalRewrite,
@@ -55,7 +55,7 @@ pub Stmt: Statement = {
         }
     },
     "prove" <precondition: ("if" <Exp> "then")?> <exp1: Exp> <exp2: ("=" <Exp>)?> => {
-        Goal(precondition, exp1, exp2.unwrap_or(Leaf(Id("true".to_string()))))
+        Goal(precondition, exp1, exp2.unwrap_or(Leaf(Id("true".to_string(), Some(Box::new(Type(Leaf(Id("bool".to_string(), None)))))))))
     }
 };
 
@@ -112,8 +112,8 @@ Id: Identifier = {
 };
 
 Termi: Terminal = {
-    <id: Id> <anno: (":" Annot)?> => Id(id, anno),
-    "?" <id: Id> <anno: (":" Annot)?> => Hole(id, anno),
+    <id: Id> <anno: (":" <Annot>)?> => Id(id, anno.map(|x| Box::new(x))),
+    "?" <id: Id> <anno: (":" <Annot>)?> => Hole(id, anno.map(|x| Box::new(x))),
 };
 
 Num: i32 = {
