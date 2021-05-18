@@ -1,19 +1,20 @@
-mod utils;
+mod ast;
 
-use wasm_bindgen::prelude::*;
+#[macro_use] extern crate lalrpop_util;
 
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
-// allocator.
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+lalrpop_mod!(pub grammar);
 
-#[wasm_bindgen]
-extern {
-    fn alert(s: &str);
-}
+use crate::ast::Statement;
 
-#[wasm_bindgen]
-pub fn greet() {
-    alert("Hello, TheSyParser!");
+
+#[test]
+fn rw_statements() {
+    let rw = grammar::StmtParser::new().parse("rw test a => b");
+    match rw {
+        Ok(s) => println!("{:?}", s),
+        Err(x) => {
+            println!("{:?}", x);
+            assert!(false, "Error parsing rewrite");
+        }
+    };
 }

@@ -1,0 +1,121 @@
+use std::str::FromStr;
+use lalrpop_util::ParseError;
+use crate::ast::*;
+use crate::ast::StatementOp::*;
+use crate::ast::Rewrite::*;
+use crate::ast::Statement::*;
+use crate::ast::Expression::*;
+use crate::ast::Terminal::*;
+use crate::ast::Annotation::*;
+//use crate::ast::Definitions::*;
+
+grammar;
+
+//pub Defs: Definitions = {
+//
+//}
+
+pub StmtOp: StatementOp = {
+    "=>" => DirectionalRewrite,
+    "<=>" => BidirectionalRewrite,
+    "=|>" => DiffApply,
+};
+
+pub RW: Rewrite = {
+    <precondition: ("if" <Exp> "then")?> <source: Exp> <op: StmtOp> <destination: Exp> <conditions: (Conditions)?> => {
+         let conds = conditions.unwrap_or(vec![]);
+         match op {
+            DirectionalRewrite => DRewrite(precondition, source, destination, conds),
+            BidirectionalRewrite => BRewrite(precondition, source, destination, conds),
+            DiffApply => AddSearcher(precondition, source, destination, conds),
+         }
+    }
+}
+
+pub Stmt: Statement = {
+    "rw" <name: Id> <rewrite: RW> => RewriteDef(name, rewrite),
+    "fun" <name: Id> <params: (Param)*> "->" <ret: Annot> "=>" <body: Exp> =>? {
+        for tup in &params {
+           let (param, anno) = tup;
+           if !anno.has_type() {
+                return Err(ParseError::User { error: "No annotation on param"});
+           }
+        }
+        Ok(Function(name, params, ret, body))
+    },
+    // Name - Type params - Constructors
+    // String, Vec<Identifier>, Vec<Constructor>
+    "datatype" <name: Id> "(" <type_params: (<Id> <(<Id>)*>)?> ")" ":=" <constrs: (Constr)+> => {
+        if let Some((h, t)) = type_params {
+            let mut tps = vec![h];
+            tps.extend(t);
+            Datatype(name, tps, constrs)
+        } else {
+            Datatype(name, vec![], constrs)
+        }
+    },
+    "prove" <precondition: ("if" <Exp> "then")?> <exp1: Exp> <exp2: ("=" <Exp>)?> => {
+        Goal(precondition, exp1, exp2.unwrap_or(Leaf(Id("true".to_string()))))
+    }
+};
+
+pub Constr: Constructor = {
+    // (Identifier, Vec<Parameter>)
+    <name: Id> <params: (":" <Param> <("->" <Param>)*>)?> => {
+        let mut res_params = vec![];
+        if let Some((h, t)) = params {
+            res_params.push(h);
+            res_params.extend(t);
+        };
+        (name, res_params)
+    },
+};
+
+pub Param: Parameter = {
+    <name: Id> ":" <anno: Annot> => (name, anno),
+    "(" <Param> ")",
+};
+
+pub Annot: Annotation = {
+    <Exp> => Type(<>),
+    "ph(" <n: Num> ")" => {
+         debug_assert!(n > 0);
+         Placeholder(n as usize)
+     },
+    "{" <head: Annot> <mut tail: ("," <Annot>)*> (",")? "}" => {
+        tail.push(head);
+        MultiAnnot(tail)
+    },
+}
+
+pub Conditions: Vec<Expression> = {
+    "when" <head: Exp> <mut tail: ("and" <Exp>)*> => {
+        tail.push(head);
+        tail
+    }
+};
+
+pub Exp: Expression = {
+    Termi => Leaf(<>),
+    "(" <root: Termi> <params: (" " <Exp>)+ > ")" => Op(root, params),
+    "(" <Exp> ")"
+};
+
+Id: Identifier = {
+    <s: r"#[^#]+#"> => {
+        let mut x = s.to_string();
+        x.remove(x.len() - 1);
+        x.remove(0);
+        x
+    },
+    <s:r"[a-zA-Z+\-/_*&$%^@0-9]+"> => s.to_string(),
+};
+
+Termi: Terminal = {
+    <id: Id> <anno: (":" Annot)?> => Id(id, anno),
+    "?" <id: Id> <anno: (":" Annot)?> => Hole(id, anno),
+};
+
+Num: i32 = {
+    r"(0 | (-)?[1-9][0-9]*)" => i32::from_str(<>).unwrap(),
+};
