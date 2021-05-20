@@ -1,5 +1,5 @@
 [package]
-name = "TheSyParser"
+name = "thesy_parser"
 version = "0.1.0"
 authors = ["Eytan Singher <eytan.singher@gmail.com>"]
 edition = "2018"
