@@ -5,7 +5,7 @@ authors = ["Eytan Singher <eytan.singher@gmail.com>"]
 edition = "2018"
 
 [lib]
-crate-type = ["rlib", "cydlib"]
+crate-type = ["rlib"]
 
 [build-dependencies] # <-- We added this and everything after!
 lalrpop = "0.19.5"
