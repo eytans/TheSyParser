@@ -1,4 +1,5 @@
 use crate::ast::Terminal::{Id, Hole};
+use itertools::Itertools;
 
 pub enum Definitions {
     Defs(Vec<Statement>),
@@ -11,7 +12,7 @@ pub enum Expression {
 }
 
 impl Expression {
-    fn terminals(&self) -> Vec<&Terminal> {
+    pub fn terminals(&self) -> Vec<&Terminal> {
         match self {
             Expression::Leaf(t) => vec![t],
             Expression::Op(t, exps) => {
@@ -23,12 +24,24 @@ impl Expression {
         }
     }
 
-    fn holes(&self) -> Vec<&Terminal> {
+    pub fn holes(&self) -> Vec<&Terminal> {
         self.terminals().iter().filter_map(|x| { match x {
             Id(_, _) => None,
             Hole(_, _) => Some(*x)
         }
         }).collect::<Vec<&Terminal>>()
+    }
+
+    pub fn to_sexp_string(&self) -> String {
+        match self {
+            Expression::Leaf(t) => { t.to_string() }
+            Expression::Op(x, y) => {
+                format!("({} {})",
+                        x.to_string(),
+                        y.iter().map(|x| x.to_sexp_string()).intersperse(" ".to_string()).collect::<String>()
+                )
+            }
+        }
     }
 }
 
@@ -42,10 +55,10 @@ pub enum StatementOp {
 #[derive(Debug, Clone)]
 pub enum Rewrite {
     /// Precondition - Source - Destination - Conditions
-    DRewrite(Option<Expression>, Expression, Expression, Vec<Expression>),
-    BRewrite(Option<Expression>, Expression, Expression, Vec<Expression>),
+    DRewrite(Option<Expression>, Expression, Expression, Vec<(Terminal, Expression)>),
+    BRewrite(Option<Expression>, Expression, Expression, Vec<(Terminal, Expression)>),
     /// Formarly known as diff applier
-    AddSearcher(Option<Expression>, Expression, Expression, Vec<Expression>),
+    AddSearcher(Option<Expression>, Expression, Expression, Vec<(Terminal, Expression)>),
 }
 
 pub type Parameter = (Identifier, Annotation);
@@ -75,7 +88,7 @@ impl ToString for Terminal {
     fn to_string(&self) -> String {
         match self {
             Id(x, a) => x.to_string(),
-            Hole(x, a) => x.to_string()
+            Hole(x, a) => format!("?{}", x.to_string())
         }
     }
 }
