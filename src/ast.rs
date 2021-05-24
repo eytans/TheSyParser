@@ -1,6 +1,7 @@
 use crate::ast::Terminal::{Id, Hole};
 use itertools::Itertools;
 
+#[derive(Debug, Clone)]
 pub enum Definitions {
     Defs(Vec<Statement>),
 }
@@ -69,7 +70,7 @@ pub enum Statement {
     /// Name and rewrite definition
     RewriteDef(String, Rewrite),
     /// Name - Params - Return type - Body
-    Function(String, Vec<Parameter>, Annotation, Expression),
+    Function(String, Vec<Parameter>, Annotation, Option<Expression>),
     /// Name - Type params - Constructors
     Datatype(String, Vec<Identifier>, Vec<Constructor>),
     /// Equality of two expressions with possible precondition

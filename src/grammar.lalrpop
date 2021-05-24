@@ -12,7 +12,9 @@ use crate::ast::Definitions;
 grammar;
 
 pub Defs: Definitions = {
-    <(<Stmt> r"[;\n]")*> => Definitions::Defs(<>)
+    <stmts: (<Stmt>)*> => {
+        Definitions::Defs(stmts.into_iter().filter_map(|x| x).collect::<Vec<Statement>>())
+    }
 }
 
 pub StmtOp: StatementOp = {
@@ -32,31 +34,32 @@ pub RW: Rewrite = {
     }
 }
 
-pub Stmt: Statement = {
-    "rw" <name: Id> <rewrite: RW> => RewriteDef(name, rewrite),
-    "fun" <name: Id> <params: (Param)*> "->" <ret: Annot> "=>" <body: Exp> =>? {
+pub Stmt: Option<Statement> = {
+    "rw" <name: Id> <rewrite: RW> => Some(RewriteDef(name, rewrite)),
+    "fun" <name: Id> <params: (Param)*> "->" <ret: Annot> <body: ("=>" <Exp>)?> =>? {
         for tup in &params {
            let (param, anno) = tup;
            if !anno.has_type() {
                 return Err(ParseError::User { error: "No annotation on param"});
            }
         }
-        Ok(Function(name, params, ret, body))
+        Ok(Some(Function(name, params, ret, body)))
     },
     // Name - Type params - Constructors
     // String, Vec<Identifier>, Vec<Constructor>
-    "datatype" <name: Id> "(" <type_params: (<Id> <(<Id>)*>)?> ")" ":=" <constrs: (Constr)+> => {
+    "datatype" <name: Id> "(" <type_params: (<Id> <(<Id>)*>)?> ")" ":=" <constrs: ("(" <Constr> ")" )+> => {
         if let Some((h, t)) = type_params {
             let mut tps = vec![h];
             tps.extend(t);
-            Datatype(name, tps, constrs)
+            Some(Datatype(name, tps, constrs))
         } else {
-            Datatype(name, vec![], constrs)
+            Some(Datatype(name, vec![], constrs))
         }
     },
     "prove" <precondition: ("if" <Exp> "then")?> <exp1: Exp> <exp2: ("=" <Exp>)?> => {
-        Goal(precondition, exp1, exp2.unwrap_or(Leaf(Id("true".to_string(), Some(Box::new(Type(Leaf(Id("bool".to_string(), None)))))))))
-    }
+        Some(Goal(precondition, exp1, exp2.unwrap_or(Leaf(Id("true".to_string(), Some(Box::new(Type(Leaf(Id("bool".to_string(), None))))))))))
+    },
+    r";.* | \n" => None,
 };
 
 pub Constr: Constructor = {
@@ -97,7 +100,7 @@ pub Conditions: Vec<(Terminal, Expression)> = {
 
 pub Exp: Expression = {
     Termi => Leaf(<>),
-    "(" <root: Termi> <params: (" " <Exp>)+ > ")" => Op(root, params),
+    "(" <root: Termi> <params: (<Exp>)+ > ")" => Op(root, params),
     "(" <Exp> ")"
 };
 
