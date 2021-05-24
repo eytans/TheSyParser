@@ -1,5 +1,8 @@
 use std::str::FromStr;
 use lalrpop_util::ParseError;
+use std::collections::{HashMap, HashSet};
+use itertools::Itertools;
+
 use crate::ast::*;
 use crate::ast::StatementOp::*;
 use crate::ast::Rewrite::*;
@@ -11,9 +14,13 @@ use crate::ast::Definitions;
 
 grammar;
 
+extern {
+    type Error = String;
+}
+
 pub Defs: Definitions = {
     <stmts: (<Stmt>)*> => {
-        Definitions::Defs(stmts.into_iter().filter_map(|x| x).collect::<Vec<Statement>>())
+        Definitions::Defs(stmts.into_iter().filter_map(|x| x).collect_vec())
     }
 }
 
@@ -24,13 +31,30 @@ pub StmtOp: StatementOp = {
 };
 
 pub RW: Rewrite = {
-    <precondition: ("if" <Exp> "then")?> <source: Exp> <op: StmtOp> <destination: Exp> <conditions: (Conditions)?> => {
-         let conds = conditions.unwrap_or(vec![]);
-         match op {
-            DirectionalRewrite => DRewrite(precondition, source, destination, conds),
-            BidirectionalRewrite => BRewrite(precondition, source, destination, conds),
-            DiffApply => AddSearcher(precondition, source, destination, conds),
-         }
+    <precondition: ("if" <Exp> "then")?> <source: Exp> <op: StmtOp> <destination: Exp> <conditions: (Conditions)?> =>? {
+        // Assert each hole is always a hole
+        let mut holes: HashSet<&String> = source.terminals().iter().filter(|t| t.is_hole()).map(|t| t.ident()).collect();
+        holes.extend(destination.terminals().iter().filter(|t| t.is_hole()).map(|t| t.ident()));
+        if let Some(p) = precondition.as_ref() {
+            holes.extend(p.terminals().iter().filter(|t| t.is_hole()).map(|t| t.ident()));
+        }
+        let mut ids: HashSet<&String> = source.terminals().iter().filter(|t| t.is_id()).map(|t| t.ident()).collect();
+                ids.extend(destination.terminals().iter().filter(|t| t.is_id()).map(|t| t.ident()));
+                if let Some(p) = precondition.as_ref() {
+                    ids.extend(p.terminals().iter().filter(|t| t.is_id()).map(|t| t.ident()));
+                }
+        for id in ids {
+            if holes.contains(id) {
+                return Err(ParseError::User { error: format!("Identifier {:?} is used both as a hole and as a normal id", id)});
+            }
+        }
+
+        let conds = conditions.unwrap_or(vec![]);
+        Ok(match op {
+           DirectionalRewrite => DRewrite(precondition, source, destination, conds),
+           BidirectionalRewrite => BRewrite(precondition, source, destination, conds),
+           DiffApply => AddSearcher(precondition, source, destination, conds),
+          })
     }
 }
 
@@ -40,8 +64,13 @@ pub Stmt: Option<Statement> = {
         for tup in &params {
            let (param, anno) = tup;
            if !anno.has_type() {
-                return Err(ParseError::User { error: "No annotation on param"});
+                return Err(ParseError::User { error: "No annotation on param".to_string()});
            }
+        }
+        if let Some(e) = &body {
+            if let Some(t) = e.terminals().iter().find(|t| t.is_hole()) {
+                return Err(ParseError::User { error: format!("terminal {:?} shouldn't be a hole in function def", t)});
+            }
         }
         Ok(Some(Function(name, params, ret, body)))
     },

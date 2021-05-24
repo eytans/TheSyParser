@@ -96,4 +96,16 @@ fun append l1: Lst l2: Lst -> Lst");
             }
         };
     }
+
+    #[test]
+    fn hole_or_id() {
+        let text = "rw app_base (append nil ?x) => x";
+        let f = grammar::StmtParser::new().parse(text);
+        match f {
+            Ok(s) => assert!(false, "Should fail as x is either a hole or an id can not be both"),
+            Err(x) => {
+                println!("{}", x);
+            }
+        };
+    }
 }

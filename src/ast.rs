@@ -94,6 +94,26 @@ impl ToString for Terminal {
     }
 }
 
+impl Terminal {
+    pub fn ident(&self) -> &String {
+        match self {
+            Id(i, _) => {i}
+            Hole(i, _) => {i}
+        }
+    }
+
+    pub fn is_hole(&self) -> bool {
+        match self {
+            Id(i, _) => {false}
+            Hole(i, _) => {true}
+        }
+    }
+
+    pub fn is_id(&self) -> bool {
+        !self.is_hole()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Annotation {
     Type(Expression),
@@ -103,10 +123,14 @@ pub enum Annotation {
 
 impl Annotation {
     pub fn has_type(&self) -> bool {
+        self.get_type().is_some()
+    }
+
+    pub fn get_type(&self) -> Option<Expression> {
         match self {
-            Annotation::Type(_) => true,
-            Annotation::Placeholder(_) => false,
-            Annotation::MultiAnnot(x) => x.iter().any(|c| c.has_type())
+            Annotation::Type(x) => Some(x.clone()),
+            Annotation::Placeholder(_) => None,
+            Annotation::MultiAnnot(x) => x.iter().find_map(|c| c.get_type())
         }
     }
 }
