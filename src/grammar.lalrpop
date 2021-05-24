@@ -85,8 +85,24 @@ pub Stmt: Option<Statement> = {
             Some(Datatype(name, vec![], constrs))
         }
     },
-    "prove" <precondition: ("if" <Exp> "then")?> <exp1: Exp> <exp2: ("=" <Exp>)?> => {
-        Some(Goal(precondition, exp1, exp2.unwrap_or(Leaf(Id("true".to_string(), Some(Box::new(Type(Leaf(Id("bool".to_string(), None))))))))))
+    "prove" <precondition: ("if" <Exp> "then")?> <exp1: Exp> <exp2: ("=" <Exp>)?> =>? {
+        let mut holes = exp1.terminals();
+        if let Some(p) = precondition.as_ref() {
+            holes.extend(p.terminals().iter());
+        }
+        if let Some(e) = exp2.as_ref() {
+            holes.extend(e.terminals().iter());
+        }
+        let hole = holes.iter().find(|t| t.is_hole());
+        if let Some(h) = hole {
+            // This assumption is used in goal processing
+            return Err(ParseError::User {error: format!("Holes are not allowed in proof goals: {}", h.ident())});
+        }
+        Ok(Some(Goal(precondition,
+            exp1,
+            exp2.unwrap_or(Leaf(Id("true".to_string(),
+                                    Some(Box::new(Type(Leaf(Id("bool".to_string(), None))))))))
+                                    )))
     },
     r";.* | \n" => None,
 };
