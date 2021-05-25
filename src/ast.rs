@@ -1,5 +1,6 @@
 use crate::ast::Terminal::{Id, Hole};
 use itertools::Itertools;
+use std::alloc::Global;
 
 #[derive(Debug, Clone)]
 pub enum Definitions {
@@ -56,6 +57,17 @@ impl Expression {
         match self {
             Expression::Leaf(_) => {vec![]}
             Expression::Op(_, cs) => {cs.clone()}
+        }
+    }
+
+    pub fn map(&self, f: impl Fn(&Terminal) -> Terminal) -> Self {
+        match self {
+            Expression::Leaf(t) => {
+                Expression::Leaf(f(t))
+            }
+            Expression::Op(t, children) => {
+                Expression::Op(f(t), children.iter().map(|c| c.map(f)).collect_vec())
+            }
         }
     }
 }
@@ -128,6 +140,13 @@ impl Terminal {
     pub fn is_id(&self) -> bool {
         !self.is_hole()
     }
+
+    pub fn anno(&self) -> &Option<Box<Annotation>> {
+        match self {
+            Id(_, a) => {a}
+            Hole(_, a) => {a}
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -147,6 +166,14 @@ impl Annotation {
             Annotation::Type(x) => Some(x.clone()),
             Annotation::Placeholder(_) => None,
             Annotation::MultiAnnot(x) => x.iter().find_map(|c| c.get_type())
+        }
+    }
+
+    pub fn get_ph(&self) -> Option<usize> {
+        match self {
+            Annotation::Type(_) => None,
+            Annotation::Placeholder(x) => x,
+            Annotation::MultiAnnot(x) => x.iter().find_map(|c| c.get_ph())
         }
     }
 }
