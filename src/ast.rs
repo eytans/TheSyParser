@@ -44,6 +44,20 @@ impl Expression {
             }
         }
     }
+
+    pub fn root(&self) -> &Terminal {
+        match self {
+            Expression::Leaf(x) => {x}
+            Expression::Op(x, _) => {x}
+        }
+    }
+
+    pub fn children(&self) -> Vec<Expression> {
+        match self {
+            Expression::Leaf(_) => {vec![]}
+            Expression::Op(_, cs) => {cs.clone()}
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -74,7 +88,9 @@ pub enum Statement {
     /// Name - Type params - Constructors
     Datatype(String, Vec<Identifier>, Vec<Constructor>),
     /// Equality of two expressions with possible precondition
-    Goal(Option<Expression>, Expression, Expression)
+    Goal(Option<Expression>, Expression, Expression),
+    /// Case split: searcher - var (has to be hole) - patterns var turns to
+    CaseSplit(Expression, Terminal, Vec<Expression>)
  }
 
 pub type Identifier = String;
