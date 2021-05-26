@@ -1,6 +1,5 @@
 use crate::ast::Terminal::{Id, Hole};
 use itertools::Itertools;
-use std::alloc::Global;
 
 #[derive(Debug, Clone)]
 pub enum Definitions {
@@ -66,7 +65,7 @@ impl Expression {
                 Expression::Leaf(f(t))
             }
             Expression::Op(t, children) => {
-                Expression::Op(f(t), children.iter().map(|c| c.map(f)).collect_vec())
+                Expression::Op(f(t), children.iter().map(|c| c.map(&f)).collect_vec())
             }
         }
     }
@@ -172,7 +171,7 @@ impl Annotation {
     pub fn get_ph(&self) -> Option<usize> {
         match self {
             Annotation::Type(_) => None,
-            Annotation::Placeholder(x) => x,
+            Annotation::Placeholder(x) => Some(*x),
             Annotation::MultiAnnot(x) => x.iter().find_map(|c| c.get_ph())
         }
     }
