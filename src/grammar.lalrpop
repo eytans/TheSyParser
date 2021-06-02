@@ -68,8 +68,9 @@ pub Stmt: Option<Statement> = {
            }
         }
         if let Some(e) = &body {
-            if let Some(t) = e.terminals().iter().find(|t| t.is_hole()) {
-                return Err(ParseError::User { error: format!("terminal {:?} shouldn't be a hole in function def", t)});
+            if let Some(t) = e.terminals().iter().find(|t| t.is_id() &&
+            params.iter().any(|p| &p.0 == t.ident())) {
+                return Err(ParseError::User { error: format!("terminal {:?} is a param therefore has to be a hole in function def", t)});
             }
         }
         Ok(Some(Function(name, params, ret, body)))
@@ -151,7 +152,7 @@ pub Param: Parameter = {
 pub Annot: Annotation = {
     <Exp> => Type(<>),
     "ph(" <n: Num> ")" => {
-         debug_assert!(n > 0);
+         debug_assert!(n >= 0);
          Placeholder(n as usize)
      },
     "{" <head: Annot> <mut tail: ("," <Annot>)*> (",")? "}" => {
@@ -189,5 +190,8 @@ Termi: Terminal = {
 };
 
 Num: i32 = {
-    r"(0 | (-)?[1-9][0-9]*)" => i32::from_str(<>).unwrap(),
+    <x: r"(0 | (-)?[1-9][0-9]*)"> => {
+        let s: String = x.split_whitespace().collect();
+        i32::from_str(&*s).unwrap()
+    },
 };

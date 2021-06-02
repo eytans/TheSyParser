@@ -1,5 +1,6 @@
 use crate::ast::Terminal::{Id, Hole};
 use itertools::Itertools;
+use std::fmt::Formatter;
 
 #[derive(Debug, Clone)]
 pub enum Definitions {
@@ -59,15 +60,21 @@ impl Expression {
         }
     }
 
-    pub fn map(&self, f: impl Fn(&Terminal) -> Terminal) -> Self {
+    pub fn map(&self, f: &impl Fn(&Terminal) -> Terminal) -> Self {
         match self {
             Expression::Leaf(t) => {
                 Expression::Leaf(f(t))
             }
             Expression::Op(t, children) => {
-                Expression::Op(f(t), children.iter().map(|c| c.map(&f)).collect_vec())
+                Expression::Op(f(t), children.iter().map(|c| c.map(f)).collect_vec())
             }
         }
+    }
+}
+
+impl std::fmt::Display for Expression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_sexp_string())
     }
 }
 
