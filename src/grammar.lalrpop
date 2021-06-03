@@ -86,7 +86,7 @@ pub Stmt: Option<Statement> = {
             Some(Datatype(name, vec![], constrs))
         }
     },
-    "split" <terminal: Termi> "in" <searcher: Exp> "to" <patterns: (<Exp>)+> =>? {
+    "split" <terminal: Termi> "in" <searcher: Exp> "to" <patterns: (<Exp>)+> <conditions: (<Conditions>)?> =>? {
         if let Id(n, a) = &terminal {
             return Err(ParseError::User{error: format!("Splitting must be done on a hole ({} is not a hole)", n)});
         }
@@ -108,7 +108,7 @@ pub Stmt: Option<Statement> = {
                 }
             }
         }
-        Ok(Some(CaseSplit(searcher, terminal, patterns)))
+        Ok(Some(CaseSplit(searcher, terminal, patterns, conditions.unwrap_or(vec![]))))
     },
     "prove" <precondition: ("if" <Exp> "then")?> <exp1: Exp> <exp2: ("=" <Exp>)?> =>? {
         let mut holes = exp1.terminals();
@@ -162,7 +162,7 @@ pub Annot: Annotation = {
 }
 
 pub Conditions: Vec<(Terminal, Expression)> = {
-    "when" <head: ("(" <Termi> "," <Exp> ")")> <mut tail: ("and" "(" <Termi> "," <Exp> ")")*> => {
+    "when" <head: ("(" <Termi> "!=" <Exp> ")")> <mut tail: ("and" "(" <Termi> "!=" <Exp> ")")*> => {
         tail.push(head);
         tail
     }

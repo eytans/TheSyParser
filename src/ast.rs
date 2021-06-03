@@ -107,8 +107,8 @@ pub enum Statement {
     Datatype(String, Vec<Identifier>, Vec<Constructor>),
     /// Equality of two expressions with possible precondition
     Goal(Option<Expression>, Expression, Expression),
-    /// Case split: searcher - var (has to be hole) - patterns var turns to
-    CaseSplit(Expression, Terminal, Vec<Expression>)
+    /// Case split: searcher - var (has to be hole) - patterns var turns to - conditions for searcher
+    CaseSplit(Expression, Terminal, Vec<Expression>, Vec<(Terminal, Expression)>)
  }
 
 pub type Identifier = String;
