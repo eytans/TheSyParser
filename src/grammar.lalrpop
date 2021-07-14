@@ -86,15 +86,21 @@ pub Stmt: Option<Statement> = {
             Some(Datatype(name, vec![], constrs))
         }
     },
-    "split" <terminal: Termi> "in" <searcher: Exp> "to" <patterns: (<Exp>)+> <conditions: (<Conditions>)?> =>? {
-        if let Id(n, a) = &terminal {
-            return Err(ParseError::User{error: format!("Splitting must be done on a hole ({} is not a hole)", n)});
+    "split" <expr: Exp> "in" <searcher: Exp> "to" <patterns: (<Exp>)+> <conditions: (<Conditions>)?> =>? {
+
+        let expr_holes = expr.holes();
+        let searcher_holes = searcher.holes();
+        if expr_holes.is_empty() {
+            return Err(ParseError::User{error: format!("No holes in splitter expr {}", expr)});
+        }
+        if !expr_holes.into_iter().collect::<HashSet<&Terminal>>()
+               .is_subset(&searcher_holes.into_iter().collect::<HashSet<&Terminal>>()) {
+            return Err(ParseError::User{error: format!("Invalid holes in splitter {}", expr)});
         }
         let mut holes: HashMap<bool, HashSet<&String>> = HashMap::default();
         holes.insert(false, HashSet::default());
         holes.insert(true, HashSet::default());
-        holes.get_mut(&terminal.is_hole()).unwrap().insert(terminal.ident());
-        for t in searcher.terminals() {
+        for t in searcher.terminals().into_iter().chain(expr.terminals().into_iter()) {
             holes.get_mut(&t.is_hole()).unwrap().insert(t.ident());
             if holes.get(&!t.is_hole()).unwrap().contains(t.ident()) {
                 return Err(ParseError::User{error: format!("Must repeatedly specify holes as such: {}", t.ident())});
@@ -108,7 +114,7 @@ pub Stmt: Option<Statement> = {
                 }
             }
         }
-        Ok(Some(CaseSplit(searcher, terminal, patterns, conditions.unwrap_or(vec![]))))
+        Ok(Some(CaseSplit(searcher, expr, patterns, conditions.unwrap_or(vec![]))))
     },
     "prove" <precondition: ("if" <Exp> "then")?> <exp1: Exp> <exp2: ("=" <Exp>)?> =>? {
         let mut holes = exp1.terminals();

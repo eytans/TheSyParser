@@ -7,7 +7,7 @@ pub enum Definitions {
     Defs(Vec<Statement>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Expression {
     Leaf(Terminal),
     Op(Terminal, Vec<Expression>),
@@ -108,12 +108,12 @@ pub enum Statement {
     /// Equality of two expressions with possible precondition
     Goal(Option<Expression>, Expression, Expression),
     /// Case split: searcher - var (has to be hole) - patterns var turns to - conditions for searcher
-    CaseSplit(Expression, Terminal, Vec<Expression>, Vec<(Terminal, Expression)>)
+    CaseSplit(Expression, Expression, Vec<Expression>, Vec<(Terminal, Expression)>)
  }
 
 pub type Identifier = String;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Terminal {
     Id(Identifier, Option<Box<Annotation>>),
     Hole(Identifier, Option<Box<Annotation>>)
@@ -155,7 +155,7 @@ impl Terminal {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Annotation {
     Type(Expression),
     Placeholder(usize),
