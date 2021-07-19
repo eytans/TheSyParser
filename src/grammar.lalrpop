@@ -135,7 +135,7 @@ pub Stmt: Option<Statement> = {
                                     Some(Box::new(Type(Leaf(Id("bool".to_string(), None))))))))
                                     )))
     },
-    r";.* | \n" => None,
+    r";(.*)+| \n" => None,
 };
 
 pub Constr: Constructor = {
