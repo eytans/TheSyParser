@@ -88,14 +88,15 @@ pub enum StatementOp {
 #[derive(Debug, Clone)]
 pub enum Rewrite {
     /// Precondition - Source - Destination - Conditions
-    DRewrite(Option<Expression>, Expression, Expression, Vec<(Terminal, Expression)>),
-    BRewrite(Option<Expression>, Expression, Expression, Vec<(Terminal, Expression)>),
+    DRewrite(Option<Expression>, Expression, Expression, Vec<Condition>),
+    BRewrite(Option<Expression>, Expression, Expression, Vec<Condition>),
     /// Formarly known as diff applier
-    AddSearcher(Option<Expression>, Expression, Expression, Vec<(Terminal, Expression)>),
+    AddSearcher(Option<Expression>, Expression, Expression, Vec<Condition>),
 }
 
 pub type Parameter = (Identifier, Annotation);
 pub type Constructor = (Identifier, Vec<Parameter>);
+pub type Condition = (Expression, Expression);
 
 #[derive(Debug, Clone)]
 pub enum Statement {
@@ -108,7 +109,7 @@ pub enum Statement {
     /// Equality of two expressions with possible precondition
     Goal(Option<Expression>, Expression, Expression),
     /// Case split: searcher - sub expression - patterns subexpression turns to - conditions for searcher
-    CaseSplit(Expression, Expression, Vec<Expression>, Vec<(Terminal, Expression)>)
+    CaseSplit(Expression, Expression, Vec<Expression>, Vec<Condition>)
  }
 
 pub type Identifier = String;
