@@ -1,7 +1,7 @@
 pub mod ast;
 
 #[macro_use] extern crate lalrpop_util;
-
+#[macro_use] extern crate lazy_static;
 lalrpop_mod!(pub grammar);
 
 use crate::ast::Statement;

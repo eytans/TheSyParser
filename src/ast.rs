@@ -11,6 +11,11 @@ pub enum Definitions {
 pub enum Expression {
     Leaf(Terminal),
     Op(Terminal, Vec<Expression>),
+    Match(Box<Expression>, Vec<(Expression, Expression)>)
+}
+
+lazy_static! {
+  static ref MATCH_ID: Terminal = Id(String::from("match"), None);
 }
 
 impl Expression {
@@ -21,6 +26,15 @@ impl Expression {
                 let mut res = exps.iter()
                     .flat_map(|x| x.terminals()).collect::<Vec<&Terminal>>();
                 res.insert(0, t);
+                res
+            }
+            Expression::Match(root, patterns) => {
+                let mut res: Vec<&Terminal> = patterns.iter().flat_map(|(c, b)| {
+                    let mut res = c.terminals();
+                    res.extend(b.terminals());
+                    res
+                }).collect_vec();
+                res.extend(root.terminals());
                 res
             }
         }
@@ -43,6 +57,12 @@ impl Expression {
                         y.iter().map(|x| x.to_sexp_string()).intersperse(" ".to_string()).collect::<String>()
                 )
             }
+            Expression::Match(root, pats) => {
+                format!("(match {} {})", root.to_sexp_string(), pats.iter()
+                    .map(|(constr, body)|
+                        format!("(=> {} {})", constr.to_sexp_string(), body.to_sexp_string()))
+                    .join(" "))
+            }
         }
     }
 
@@ -50,6 +70,7 @@ impl Expression {
         match self {
             Expression::Leaf(x) => {x}
             Expression::Op(x, _) => {x}
+            Expression::Match(_, _) => {&MATCH_ID}
         }
     }
 
@@ -57,6 +78,12 @@ impl Expression {
         match self {
             Expression::Leaf(_) => {vec![]}
             Expression::Op(_, cs) => {cs.clone()}
+            Expression::Match(root, pats) => {
+                let mut res = pats.iter()
+                    .map(|x| x.1.clone()).collect_vec();
+                res.push(*root.clone());
+                res
+            }
         }
     }
 
@@ -67,6 +94,14 @@ impl Expression {
             }
             Expression::Op(t, children) => {
                 Expression::Op(f(t), children.iter().map(|c| c.map(f)).collect_vec())
+            }
+            Expression::Match(root, pats) => {
+                Expression::Match(
+                    Box::new(root.map(f)),
+                    pats.iter()
+                        .map(|(ctr, pat)| (ctr.map(f), pat.map(f)))
+                        .collect_vec()
+                )
             }
         }
     }
