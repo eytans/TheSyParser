@@ -50,11 +50,19 @@ pub RW: Rewrite = {
         }
 
         let conds = conditions.unwrap_or(vec![]);
-        Ok(match op {
+        let mut condition_holes: Vec<Terminal> = conds.iter().flat_map(|(c1, c2)| c1.holes().into_iter().cloned()).collect_vec();
+        condition_holes.extend(conds.iter().flat_map(|(c1, c2)| c2.holes().into_iter().cloned()));
+        let mut source_holes: HashSet<Terminal> = source.holes().into_iter().cloned().collect();
+        let res = Ok(match op {
            DirectionalRewrite => DRewrite(precondition, source, destination, conds),
-           BidirectionalRewrite => BRewrite(precondition, source, destination, conds),
+           BidirectionalRewrite => {
+            source_holes.extend(destination.holes().into_iter().cloned());
+            BRewrite(precondition, source, destination, conds)
+           },
            DiffApply => AddSearcher(precondition, source, destination, conds),
-          })
+        });
+        if condition_holes.into_iter().all(|h| source_holes.contains(&h)) { res }
+        else { Err(ParseError::User { error: "Condition holes must exist in source".to_string() }) }
     }
 }
 
@@ -114,7 +122,13 @@ pub Stmt: Option<Statement> = {
                 }
             }
         }
-        Ok(Some(CaseSplit(searcher, expr, patterns, conditions.unwrap_or(vec![]))))
+        let conds = conditions.unwrap_or(vec![]);
+        let mut condition_holes: Vec<Terminal> = conds.iter().flat_map(|(c1, c2)| c1.holes().into_iter().cloned()).collect_vec();
+        condition_holes.extend(conds.iter().flat_map(|(c1, c2)| c2.holes().into_iter().cloned()));
+        let mut source_holes: HashSet<Terminal> = searcher.holes().into_iter().cloned().collect();
+        let res = Ok(Some(CaseSplit(searcher, expr, patterns, conds)));
+        if condition_holes.into_iter().all(|h| source_holes.contains(&h)) { res }
+        else { Err(ParseError::User { error: "Condition holes must exist in source".to_string() }) }
     },
     "prove" <precondition: ("if" <Exp> "then")?> <exp1: Exp> <exp2: ("=" <Exp>)?> =>? {
         let mut holes = exp1.terminals();
