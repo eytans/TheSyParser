@@ -1,6 +1,7 @@
 use crate::ast::Terminal::{Id, Hole};
 use itertools::Itertools;
 use std::fmt::Formatter;
+use crate::ast::Rewrite::{DRewrite, BRewrite, AddSearcher};
 
 #[derive(Debug, Clone)]
 pub enum Definitions {
@@ -127,6 +128,16 @@ pub enum Rewrite {
     BRewrite(Option<Expression>, Expression, Expression, Vec<Condition>),
     /// Formarly known as diff applier
     AddSearcher(Option<Expression>, Expression, Expression, Vec<Condition>),
+}
+
+impl Rewrite {
+    pub fn source_expressions(&self) -> Vec<&Expression> {
+        match self {
+            DRewrite(_, source, _, _) => {vec![source]}
+            BRewrite(_, source, target, _) => {vec![source, target]}
+            AddSearcher(_, source, _, _) => {vec![source]}
+        }
+    }
 }
 
 pub type Parameter = (Identifier, Annotation);
