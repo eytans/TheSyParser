@@ -11,6 +11,8 @@ use crate::ast::Expression::*;
 use crate::ast::Terminal::*;
 use crate::ast::Annotation::*;
 use crate::ast::Definitions;
+use crate::parse_tools::*;
+use crate::parse_tools::holes_correspond;
 
 grammar;
 
@@ -48,6 +50,7 @@ pub RW: Rewrite = {
                 return Err(ParseError::User { error: format!("Identifier {:?} is used both as a hole and as a normal id", id)});
             }
         }
+
 
         let conds = conditions.unwrap_or(vec![]);
         let mut condition_holes: Vec<Terminal> = conds.iter().flat_map(|(c1, c2)| c1.holes().into_iter().cloned()).collect_vec();
@@ -138,16 +141,15 @@ pub Stmt: Option<Statement> = {
         if let Some(e) = exp2.as_ref() {
             holes.extend(e.terminals().iter());
         }
-        let hole = holes.iter().find(|t| t.is_hole());
-        if let Some(h) = hole {
-            // This assumption is used in goal processing
-            return Err(ParseError::User {error: format!("Holes are not allowed in proof goals: {}", h.ident())});
+        let res = holes_correspond(holes.iter().cloned());
+        if matches!(res, Err(_)) { res.map(|x| None) }
+        else {
+            Ok(Some(Goal(precondition,
+                exp1,
+                exp2.unwrap_or(Leaf(Id("true".to_string(),
+                                        Some(Box::new(Type(Leaf(Id("bool".to_string(), None))))))))
+                                        )))
         }
-        Ok(Some(Goal(precondition,
-            exp1,
-            exp2.unwrap_or(Leaf(Id("true".to_string(),
-                                    Some(Box::new(Type(Leaf(Id("bool".to_string(), None))))))))
-                                    )))
     },
     r";(.*)+| \n" => None,
 };

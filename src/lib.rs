@@ -1,4 +1,5 @@
 pub mod ast;
+mod parse_tools;
 
 #[macro_use] extern crate lalrpop_util;
 #[macro_use] extern crate lazy_static;
