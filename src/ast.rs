@@ -88,7 +88,7 @@ impl Expression {
         }
     }
 
-    pub fn map(&self, f: &impl Fn(&Terminal) -> Terminal) -> Self {
+    pub fn map(&self, f: &mut impl FnMut(&Terminal) -> Terminal) -> Self {
         match self {
             Expression::Leaf(t) => {
                 Expression::Leaf(f(t))
