@@ -203,7 +203,7 @@ Id: Identifier = {
         x.remove(0);
         x
     },
-    <s:r"[a-zA-Z+\-/_*&$%^@0-9]+"> => s.to_string(),
+    <s:r"[a-zA-Z=+\-/_*&$%^@0-9]+"> => s.to_string(),
 };
 
 Termi: Terminal = {
