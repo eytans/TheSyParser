@@ -16,6 +16,9 @@ use crate::parse_tools::holes_correspond;
 
 grammar;
 
+// TODO: Add a lexer using match expression here (see documentation), and then
+// TODO: fix support for special chaeacters in identifiers (e.g. $, #, etc.)
+
 extern {
     type Error = String;
 }
@@ -203,7 +206,8 @@ Id: Identifier = {
         x.remove(0);
         x
     },
-    <s:r"[a-zA-Z=+\-/_*&$%^@0-9]+"> => s.to_string(),
+    <s:r"[a-zA-Z+\-/_*&$%^@0-9]+"> => s.to_string(),
+    <s:"="> => s.to_string(),
 };
 
 Termi: Terminal = {

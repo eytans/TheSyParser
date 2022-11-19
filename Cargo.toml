@@ -8,10 +8,10 @@ edition = "2018"
 crate-type = ["rlib"]
 
 [build-dependencies] # <-- We added this and everything after!
-lalrpop = "0.19.5"
+lalrpop = "0.19.7"
 
 [dependencies]
-lalrpop-util = "0.19.5"
+lalrpop-util = "0.19.7"
 regex = "1"
 itertools = "0.10.0"
 lazy_static = "1.4.0"

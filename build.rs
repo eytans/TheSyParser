@@ -1,5 +1,9 @@
 extern crate lalrpop;
 
 fn main() {
-    lalrpop::process_root().unwrap();
+    let res = lalrpop::process_root();
+    res.unwrap_or_else(|x| {
+        println!("{}", x);
+        panic!("{}", x)
+    });
 }

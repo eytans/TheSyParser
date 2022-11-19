@@ -109,4 +109,20 @@ fun append l1: Lst l2: Lst -> Lst");
             }
         };
     }
+
+    #[test]
+    fn parse_from_clamgoal1() {
+        let text = "datatype Nat () := (succ : (x_0 : Nat) -> (res : Nat)) (zero : (res : Nat))
+fun plus (x_0 : Nat) (x_1 : Nat) -> Nat
+fun double (x_0 : Nat) -> Nat
+fun leq (__x0 : Nat) (__y1 : Nat) -> Bool => (or (= ?__x0 ?__y1) (less ?__x0 ?__y1))";
+        let defs = grammar::DefsParser::new().parse(text);
+        match defs {
+            Ok(s) => println!("{:?}", s),
+            Err(x) => {
+                println!("{}", x);
+                assert!(false, "Error parsing Defs");
+            }
+        };
+    }
 }
