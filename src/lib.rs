@@ -1,6 +1,7 @@
 pub mod ast;
 mod parse_tools;
 
+#[macro_use] extern crate log;
 #[macro_use] extern crate lalrpop_util;
 #[macro_use] extern crate lazy_static;
 lalrpop_mod!(pub grammar);
@@ -10,6 +11,7 @@ use crate::ast::Statement;
 
 #[cfg(test)]
 mod tests {
+    use env_logger;
     use crate::grammar;
 
     #[test]
@@ -116,6 +118,22 @@ fun append l1: Lst l2: Lst -> Lst");
 fun plus (x_0 : Nat) (x_1 : Nat) -> Nat
 fun double (x_0 : Nat) -> Nat
 fun leq (__x0 : Nat) (__y1 : Nat) -> Bool => (or (= ?__x0 ?__y1) (less ?__x0 ?__y1))";
+        let defs = grammar::DefsParser::new().parse(text);
+        match defs {
+            Ok(s) => println!("{:?}", s),
+            Err(x) => {
+                println!("{}", x);
+                assert!(false, "Error parsing Defs");
+            }
+        };
+    }
+
+    #[test]
+    fn parse_from_leon_queue7() {
+        std::env::set_var("RUST_LOG", "debug");
+        env_logger::init();
+        debug!("Starting test");
+        let text = "rw rule29 (and (= ?x17 nil) (= ?y18 nil)) => (isEmpty (queue ?x17 ?y18))";
         let defs = grammar::DefsParser::new().parse(text);
         match defs {
             Ok(s) => println!("{:?}", s),

@@ -187,7 +187,7 @@ pub Annot: Annotation = {
 }
 
 pub Conditions: Vec<(Expression, Expression)> = {
-    "when" <head: ("(" <Exp> "!=" <Exp> ")")> <mut tail: ("and" "(" <Exp> "!=" <Exp> ")")*> => {
+    "when" <head: ("(" <Exp> "!=" <Exp> ")")> <mut tail: ("andalso" "(" <Exp> "!=" <Exp> ")")*> => {
         tail.push(head);
         tail
     }
